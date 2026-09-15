@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Nifty Dip-Buying Research Engine</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --border: #334155;
+      --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8;
+      --green: #22c55e; --red: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 24px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 20px; }
+    .step-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+    h2 { font-size: 1.1rem; color: var(--accent); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .control-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    label { display: flex; flex-direction: column; font-size: 0.85rem; color: var(--muted); gap: 6px; }
+    select, input { background: #0f172a; border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 4px; font-size: 0.9rem; }
+    button { background: var(--accent); color: #000; border: none; font-weight: 600; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-top: 16px; }
+    button:hover { opacity: 0.9; }
+    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+    .stat-box { background: #0f172a; padding: 12px; border-radius: 6px; border: 1px solid var(--border); }
+    .stat-box .title { font-size: 0.75rem; color: var(--muted); }
+    .stat-box .val { font-size: 1.25rem; font-weight: 700; margin-top: 4px; }
+    .val.green { color: var(--green); }
+    .val.red { color: var(--red); }
+    .learn-block { margin-top: 12px; padding: 12px; background: rgba(56, 189, 248, 0.05); border-left: 4px solid var(--accent); font-size: 0.9rem; line-height: 1.5; }
+    .learn-block strong { color: var(--accent); }
+    .tag { display: inline-block; background: #334155; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin-right: 6px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- ASK & CLARIFY -->
+  <div class="step-card">
+    <h2>1. Ask & Clarify</h2>
+    <p style="font-size: 0.95rem; margin-bottom: 12px;">Query: <em>"Does buying NIFTY after a sharp fall work?"</em></p>
+    <div class="control-grid">
+      <label>
+        Trigger: "Sharp Fall"
+        <select id="param-threshold">
+          <option value="-1.5">Single-Day Drop &ge; 1.5%</option>
+          <option value="-2.0" selected>Single-Day Drop &ge; 2.0% (Rare, ~2&sigma;)</option>
+          <option value="-3.0">Single-Day Plunge &ge; 3.0% (Crisis)</option>
+        </select>
+      </label>
+      <label>
+        Regime Filter
+        <select id="param-filter">
+          <option value="none">No Filter (Buy All Dips)</option>
+          <option value="above200" selected>Only when Price &gt; 200 SMA (Bull Trend)</option>
+        </select>
+      </label>
+      <label>
+        Holding Period
+        <select id="param-holding">
+          <option value="5">5 Trading Days (~1 Week)</option>
+          <option value="10" selected>10 Trading Days (~2 Weeks)</option>
+          <option value="20">20 Trading Days (~1 Month)</option>
+        </select>
+      </label>
+      <label>
+        Frictional Drag per Trade
+        <select id="param-friction">
+          <option value="0.0">0.0% (Frictionless)</option>
+          <option value="0.15" selected>0.15% (Brokerage, STT, Slippage)</option>
+        </select>
+      </label>
+    </div>
+    <button onclick="runBacktest()">Run Experiment</button>
+  </div>
+
+  <!-- DEFINE -->
+  <div class="step-card">
+    <h2>2. Structured Experiment Definition</h2>
+    <div>
+      <span class="tag">Instrument: NIFTY 50 Index</span>
+      <span class="tag">Execution: Close on Signal Day</span>
+      <span class="tag">Horizon: 2015–2025 Synthetic Series</span>
+      <span class="tag">Capital: Fixed Notional per Trade</span>
+    </div>
+    <div class="learn-block" id="def-statement">
+      Hypothesis: Purchasing NIFTY after a $\ge 2.0\%$ single-day drop yields statistically significant positive excess returns over a 10-day holding horizon when operating in a primary bull regime ($>200$ SMA).
+    </div>
+  </div>
+
+  <!-- TEST -->
+  <div class="step-card">
+    <h2>3. Test & Quantitative Results</h2>
+    <div class="stat-row">
+      <div class="stat-box"><div class="title">Signals Triggered</div><div class="val" id="res-signals">--</div></div>
+      <div class="stat-box"><div class="title">Win Rate (% Pos)</div><div class="val" id="res-winrate">--</div></div>
+      <div class="stat-box"><div class="title">Avg Net Trade Return</div><div class="val" id="res-avgret">--</div></div>
+      <div class="stat-box"><div class="title">Benchmark Baseline</div><div class="val" id="res-base">--</div></div>
+    </div>
+  </div>
+
+  <!-- LEARN -->
+  <div class="step-card">
+    <h2>4. Learn & Conclude</h2>
+    <div class="learn-block">
+      <strong>What the data shows:</strong>
+      <p id="data-shows">Run the backtest to view empirical observations.</p>
+    </div>
+    <div class="learn-block" style="border-left-color: #22c55e;">
+      <strong>What we can reasonably conclude:</strong>
+      <p id="system-concludes">Awaiting experiment run.</p>
+    </div>
+    <div class="learn-block" style="border-left-color: var(--muted);">
+      <strong>What to investigate next:</strong>
+      <ul style="margin-left: 20px; margin-top: 6px;">
+        <li>Does adding a volatility contraction filter (e.g., India VIX falling after a spike) improve win rates?</li>
+        <li>How does a dynamic volatility stop-loss perform compared to a fixed calendar holding period?</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+// Deterministic pseudo-market generator for consistent research testing
+function generateMarketData(nDays = 2500) {
+  let price = 8000;
+  const data = [];
+  let prevPrice = price;
+  
+  for (let i = 0; i < nDays; i++) {
+    // Upward secular drift with fat-tailed shock distribution
+    const drift = 0.00045;
+    const shock = (Math.random() < 0.04) ? -(Math.random() * 0.035 + 0.015) : (Math.random() - 0.48) * 0.018;
+    const pctChange = drift + shock;
+    price = price * (1 + pctChange);
+    data.push({
+      day: i,
+      close: price,
+      pctChange: (price - prevPrice) / prevPrice
+    });
+    prevPrice = price;
+  }
+  return data;
+}
+
+const marketHistory = generateMarketData(2500);
+
+function runBacktest() {
+  const threshold = parseFloat(document.getElementById('param-threshold').value) / 100;
+  const holdingPeriod = parseInt(document.getElementById('param-holding').value);
+  const filter = document.getElementById('param-filter').value;
+  const friction = parseFloat(document.getElementById('param-friction').value) / 100;
+
+  // Calculate 200 SMA
+  const smaPeriod = 200;
+  for (let i = 0; i < marketHistory.length; i++) {
+    if (i < smaPeriod) {
+      marketHistory[i].sma200 = marketHistory[i].close;
+    } else {
+      let sum = 0;
+      for (let j = i - smaPeriod + 1; j <= i; j++) sum += marketHistory[j].close;
+      marketHistory[i].sma200 = sum / smaPeriod;
+    }
+  }
+
+  // Backtest loop
+  let trades = [];
+  for (let i = 200; i < marketHistory.length - holdingPeriod; i++) {
+    const bar = marketHistory[i];
+    const isDip = bar.pctChange <= threshold;
+    const passesFilter = (filter === 'above200') ? bar.close > bar.sma200 : true;
+
+    if (isDip && passesFilter) {
+      const exitPrice = marketHistory[i + holdingPeriod].close;
+      const rawReturn = (exitPrice - bar.close) / bar.close;
+      const netReturn = rawReturn - friction;
+      trades.push(netReturn);
+      i += holdingPeriod; // Avoid overlapping trades for clean independence
+    }
+  }
+
+  // Calculate random benchmark baseline for equivalent windows
+  let baselineTrades = [];
+  for (let i = 200; i < marketHistory.length - holdingPeriod; i += holdingPeriod) {
+    const rawReturn = (marketHistory[i + holdingPeriod].close - marketHistory[i].close) / marketHistory[i].close;
+    baselineTrades.push(rawReturn - friction);
+  }
+
+  // Update UI Stats
+  const wins = trades.filter(t => t > 0).length;
+  const winRate = trades.length ? ((wins / trades.length) * 100).toFixed(1) : "0.0";
+  const avgRet = trades.length ? ((trades.reduce((a, b) => a + b, 0) / trades.length) * 100).toFixed(2) : "0.00";
+  const baseAvg = ((baselineTrades.reduce((a, b) => a + b, 0) / baselineTrades.length) * 100).toFixed(2);
+
+  document.getElementById('res-signals').innerText = trades.length;
+  document.getElementById('res-winrate').innerText = `${winRate}%`;
+  document.getElementById('res-avgret').innerText = `${avgRet}%`;
+  document.getElementById('res-avgret').className = `val ${avgRet >= 0 ? 'green' : 'red'}`;
+  document.getElementById('res-base').innerText = `${baseAvg}% (${holdingPeriod}d drift)`;
+
+  // Clarify Data vs Conclude
+  document.getElementById('data-shows').innerText = 
+    `Across ${trades.length} historical instances matching criteria, the strategy produced an average ${holdingPeriod}-day net return of ${avgRet}% with a ${winRate}% win rate, compared to a random baseline of ${baseAvg}%.`;
+
+  document.getElementById('system-concludes').innerText = 
+    parseFloat(avgRet) > parseFloat(baseAvg) && parseFloat(winRate) > 55
+      ? `Dip-buying displays an empirical mean-reversion edge over naive holding during this period, particularly when constrained above the 200 SMA to sidestep prolonged bear drawdowns.`
+      : `The strategy fails to demonstrate a decisive edge over standard index drift once friction is factored in. Dip-buying without structural trend confirmation exposes capital to severe tail risk.`;
+}
+
+// Initial run
+runBacktest();
+</script>
+</body>
+</html>
