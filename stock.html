@@ -82,7 +82,8 @@
       <span class="tag">Capital: Fixed Notional per Trade</span>
     </div>
     <div class="learn-block" id="def-statement">
-      Hypothesis: Purchasing NIFTY after a $\ge 2.0\%$ single-day drop yields statistically significant positive excess returns over a 10-day holding horizon when operating in a primary bull regime ($>200$ SMA).
+  <!-- This text will now update automatically whenever the user changes options -->
+       Hypothesis: Loading experiment parameters...
     </div>
   </div>
 
@@ -148,8 +149,12 @@ function runBacktest() {
   const holdingPeriod = parseInt(document.getElementById('param-holding').value);
   const filter = document.getElementById('param-filter').value;
   const friction = parseFloat(document.getElementById('param-friction').value) / 100;
-
+ 
   // Calculate 200 SMA
+
+  const regimeText = (filter === 'above200') 
+  ? 'when price is above the 200-day moving average (Bull Trend)' 
+  : 'across all market conditions (No Trend Filter)';
   const smaPeriod = 200;
   for (let i = 0; i < marketHistory.length; i++) {
     if (i < smaPeriod) {
@@ -204,7 +209,10 @@ function runBacktest() {
     parseFloat(avgRet) > parseFloat(baseAvg) && parseFloat(winRate) > 55
       ? `Dip-buying displays an empirical mean-reversion edge over naive holding during this period, particularly when constrained above the 200 SMA to sidestep prolonged bear drawdowns.`
       : `The strategy fails to demonstrate a decisive edge over standard index drift once friction is factored in. Dip-buying without structural trend confirmation exposes capital to severe tail risk.`;
-}
+   document.getElementById('def-statement').innerHTML = 
+  `<strong>Hypothesis:</strong> Buying NIFTY after a single-day drop of ≥ ${threshold}% ` +
+  `yields positive excess returns over a ${holdingPeriod}-day holding period ${regimeText}.`;
+    }
 
 // Initial run
 runBacktest();
